@@ -18,24 +18,6 @@
       </div>
       <p class="hint">{{ parseHint }}</p>
       <p v-if="actionMessage" class="action-message">{{ actionMessage }}</p>
-      <div v-if="parsedVideo" class="parsed-preview">
-        <div class="parsed-cover-wrap">
-          <img
-            v-if="parsedVideo.thumbnail && !thumbnailLoadFailed"
-            :src="parsedVideo.thumbnail"
-            :alt="parsedVideo.title || '视频封面'"
-            class="parsed-cover"
-            @error="thumbnailLoadFailed = true"
-          />
-          <div v-else class="parsed-cover parsed-cover-fallback">暂无封面</div>
-        </div>
-        <div class="parsed-meta">
-          <h3>{{ parsedVideo.title || "未命名视频" }}</h3>
-          <p>时长：{{ formatDuration(parsedVideo.duration) }}</p>
-          <p>可用格式：{{ parsedVideo.formats?.length || 0 }}</p>
-          <p class="parsed-link">{{ parsedVideo.webpage_url }}</p>
-        </div>
-      </div>
     </div>
 
     <div class="panel">
@@ -51,6 +33,13 @@
           </div>
           <div class="progress"><i :style="{ width: `${task.progress || 0}%` }"></i></div>
           <a v-if="task.status === 'completed'" :href="getDownloadLink(task.id)" target="_blank">下载文件</a>
+          <button
+            v-if="task.status === 'queued' || task.status === 'downloading'"
+            class="ghost danger"
+            @click="handleCancel(task.id)"
+          >
+            取消下载
+          </button>
           <p v-if="task.error" class="error">{{ task.error }}</p>
         </article>
         <p v-if="!tasks.length" class="panel-intro">暂无任务，创建下载任务后会自动显示进度。</p>
@@ -75,6 +64,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import {
+  cancelTask,
   createBatchDownloads,
   createDownload,
   getDownloadLink,
@@ -93,8 +83,6 @@ const aiText = ref("");
 const targetLang = ref("zh");
 const aiResult = ref("");
 const urlTextareaRef = ref<HTMLTextAreaElement | null>(null);
-const parsedVideo = ref<any | null>(null);
-const thumbnailLoadFailed = ref(false);
 const isSubmitting = ref(false);
 const actionMessage = ref("");
 let pollTimer: number | null = null;
@@ -114,26 +102,22 @@ function handleHeroSubmit(event: Event) {
 async function handleParse() {
   const first = urlText.value.split("\n").map((line) => line.trim()).filter(Boolean)[0];
   if (!first) return;
+  const isDouyin = /douyin\.com\//i.test(first);
+  if (isDouyin) {
+    parseHint.value = "检测到抖音风控，正在尝试自动访客验证（无需登录）...";
+  }
   try {
     const data = await parseVideo(first);
-    parsedVideo.value = data;
-    thumbnailLoadFailed.value = false;
     parseHint.value = `${data.title || "视频"} · 可用格式 ${data.formats?.length || 0} 个`;
   } catch (error: any) {
-    parsedVideo.value = null;
-    thumbnailLoadFailed.value = false;
-    parseHint.value = error.message || "解析失败";
+    const message = error?.message || "解析失败";
+    if (isDouyin && /guest verification|anti-bot challenge|retry this link/i.test(message)) {
+      parseHint.value = "抖音正在触发自动访客验证，请等待 3-8 秒后再次点击“解析”。";
+      actionMessage.value = "系统已自动尝试风控绕过（临时访客 cookie），无需你提供账号 cookies。";
+      return;
+    }
+    parseHint.value = message;
   }
-}
-
-function formatDuration(seconds?: number | null) {
-  if (!seconds || Number.isNaN(seconds)) return "未知";
-  const total = Math.floor(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 async function handleDownload() {
@@ -166,6 +150,16 @@ async function refreshTasks() {
     tasks.value = await listTasks();
   } catch (error: any) {
     actionMessage.value = error?.message || "刷新任务失败";
+  }
+}
+
+async function handleCancel(taskId: string) {
+  try {
+    await cancelTask(taskId);
+    actionMessage.value = "已取消下载任务。";
+    await refreshTasks();
+  } catch (error: any) {
+    actionMessage.value = error?.message || "取消任务失败";
   }
 }
 

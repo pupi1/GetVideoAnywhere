@@ -15,6 +15,7 @@ class DownloadTask:
     format_id: str | None = None
     file_path: str | None = None
     error: str | None = None
+    cancel_requested: bool = False
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
@@ -51,6 +52,23 @@ class InMemoryTaskStore:
     def list_all(self) -> list[dict[str, Any]]:
         with self._lock:
             return [task.to_dict() for task in self._tasks.values()]
+
+    def request_cancel(self, task_id: str) -> DownloadTask | None:
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if not task:
+                return None
+            task.cancel_requested = True
+            # Keep final states untouched.
+            if task.status not in {"completed", "failed", "cancelled"}:
+                task.status = "cancelled"
+            task.updated_at = datetime.utcnow().isoformat()
+            return task
+
+    def is_cancel_requested(self, task_id: str) -> bool:
+        with self._lock:
+            task = self._tasks.get(task_id)
+            return bool(task and task.cancel_requested)
 
 
 task_store = InMemoryTaskStore()

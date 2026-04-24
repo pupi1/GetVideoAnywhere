@@ -6,6 +6,7 @@ services:
       - MAX_CONCURRENT_TASKS=3
       - YTDLP_COOKIES_FILE=/app/cookies/bilibili_cookies.txt
       - YTDLP_PROXY=${YTDLP_PROXY:-}
+      - YTDLP_VQQ_PROXY=${YTDLP_VQQ_PROXY:-}
     dns:
       - 223.5.5.5
       - 1.1.1.1

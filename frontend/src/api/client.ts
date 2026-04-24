@@ -54,6 +54,13 @@ export async function listTasks(): Promise<DownloadTask[]> {
   return unwrap(res);
 }
 
+export async function cancelTask(taskId: string): Promise<DownloadTask> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/cancel`, {
+    method: "POST",
+  });
+  return unwrap(res);
+}
+
 export async function summarizeText(text: string): Promise<{ summary: string; keywords: string }> {
   const res = await fetch(`${API_BASE}/ai/summarize`, {
     method: "POST",
@@ -74,6 +81,19 @@ export async function translateText(text: string, target_language: string): Prom
 
 export function getDownloadLink(taskId: string): string {
   return `${API_BASE}/file/${taskId}`;
+}
+
+export function getBrowserDownloadLink(url: string, format_id?: string): string {
+  const query = new URLSearchParams({ url });
+  if (format_id) query.set("format_id", format_id);
+  return `${API_BASE}/browser-download?${query.toString()}`;
+}
+
+export function getDirectBrowserDownloadLink(media_url: string, title?: string, ext?: string): string {
+  const query = new URLSearchParams({ media_url });
+  if (title) query.set("title", title);
+  if (ext) query.set("ext", ext);
+  return `${API_BASE}/browser-download-direct?${query.toString()}`;
 }
 
 export function getThumbnailProxyLink(sourceUrl: string): string {

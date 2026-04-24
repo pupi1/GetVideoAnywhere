@@ -1,4 +1,4 @@
-# VideoAnywhere
+# GetVideoAnywhere
 
 前后端分离的万能视频下载站 MVP。
 
