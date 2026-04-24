@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Universal Video Downloader API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+  /parse:
+    post:
+      summary: Parse video metadata and formats
+      requestBody:
+        required: true
+      responses:
+        "200":
+          description: Parsed metadata
+  /download:
+    post:
+      summary: Create single download task
+      responses:
+        "200":
+          description: Task created
+  /download/batch:
+    post:
+      summary: Create batch download tasks
+      responses:
+        "200":
+          description: Tasks created
+  /tasks:
+    get:
+      summary: List all tasks
+      responses:
+        "200":
+          description: Task list
+  /tasks/{task_id}:
+    get:
+      summary: Get one task status
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task detail
+  /file/{task_id}:
+    get:
+      summary: Download output file
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream
+  /ai/summarize:
+    post:
+      summary: Summarize text
+      responses:
+        "200":
+          description: Summary result
+  /ai/translate:
+    post:
+      summary: Translate text
+      responses:
+        "200":
+          description: Translation result

@@ -1,0 +1,7 @@
+.cursor/
+__pycache__/
+*.pyc
+backend/downloads/
+backend/cookies/
+node_modules/
+frontend/dist/
